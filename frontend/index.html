@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Credit Risk Predictor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 560px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 0.3rem;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #718096;
+      margin-bottom: 2rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #4a5568;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input {
+      padding: 0.55rem 0.75rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 7px;
+      font-size: 0.95rem;
+      color: #1a202c;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    input:focus { border-color: #4f46e5; }
+
+    .hint {
+      font-size: 0.72rem;
+      color: #a0aec0;
+    }
+
+    button {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 0.85rem;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover   { background: #4338ca; }
+    button:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    .result {
+      margin-top: 1.5rem;
+      padding: 1.25rem 1.5rem;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .result.low  { background: #f0fff4; border: 1.5px solid #9ae6b4; }
+    .result.high { background: #fff5f5; border: 1.5px solid #fc8181; }
+
+    .result-label {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .result.low  .result-label { color: #276749; }
+    .result.high .result-label { color: #c53030; }
+
+    .result-prob {
+      font-size: 0.9rem;
+      color: #4a5568;
+    }
+
+    .prob-bar-wrap {
+      margin-top: 0.75rem;
+      background: #edf2f7;
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .prob-bar {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+
+    .result.low  .prob-bar { background: #48bb78; }
+    .result.high .prob-bar { background: #f56565; }
+
+    .error {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: #fff5f5;
+      border: 1.5px solid #fc8181;
+      border-radius: 8px;
+      color: #c53030;
+      font-size: 0.875rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>Credit Risk Predictor</h1>
+  <p class="subtitle">Predicts probability of loan default within 2 years.</p>
+
+  <div class="grid">
+    <div class="field">
+      <label>Revolving Utilization</label>
+      <input type="number" id="util" min="0" max="1" step="0.01" value="0.45" />
+      <span class="hint">0 to 1 (e.g. 0.45 = 45%)</span>
+    </div>
+
+    <div class="field">
+      <label>Age</label>
+      <input type="number" id="age" min="18" max="109" value="45" />
+      <span class="hint">Years</span>
+    </div>
+
+    <div class="field">
+      <label>Monthly Income ($)</label>
+      <input type="number" id="income" min="0" value="5000" />
+      <span class="hint">USD</span>
+    </div>
+
+    <div class="field">
+      <label>Debt Ratio</label>
+      <input type="number" id="debt" min="0" step="0.01" value="0.35" />
+      <span class="hint">Monthly debt / income</span>
+    </div>
+
+    <div class="field">
+      <label>30–59 Days Late</label>
+      <input type="number" id="late3059" min="0" value="0" />
+      <span class="hint">Times in past 2 years</span>
+    </div>
+
+    <div class="field">
+      <label>60–89 Days Late</label>
+      <input type="number" id="late6089" min="0" value="0" />
+      <span class="hint">Times in past 2 years</span>
+    </div>
+
+    <div class="field">
+      <label>90+ Days Late</label>
+      <input type="number" id="late90" min="0" value="0" />
+      <span class="hint">Times in past 2 years</span>
+    </div>
+
+    <div class="field">
+      <label>Open Credit Lines</label>
+      <input type="number" id="creditlines" min="0" value="8" />
+      <span class="hint">Loans + credit cards</span>
+    </div>
+
+    <div class="field">
+      <label>Real Estate Loans</label>
+      <input type="number" id="realestate" min="0" value="1" />
+      <span class="hint">Mortgage / property</span>
+    </div>
+
+    <div class="field">
+      <label>Dependents</label>
+      <input type="number" id="dependents" min="0" value="1" />
+      <span class="hint">Spouse, children, etc.</span>
+    </div>
+  </div>
+
+  <button id="btn" onclick="score()">Predict Default Risk</button>
+
+  <div class="error" id="error"></div>
+
+  <div class="result" id="result">
+    <div class="result-label" id="result-label"></div>
+    <div class="result-prob" id="result-prob"></div>
+    <div class="prob-bar-wrap">
+      <div class="prob-bar" id="prob-bar"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Change this to your deployed API URL when you deploy to Render/Railway
+  const API_URL = "http://127.0.0.1:8000/predict";
+
+  async function score() {
+    const btn    = document.getElementById("btn");
+    const errEl  = document.getElementById("error");
+    const resEl  = document.getElementById("result");
+
+    errEl.style.display = "none";
+    resEl.style.display = "none";
+    btn.disabled = true;
+    btn.textContent = "Scoring...";
+
+    const payload = {
+      "RevolvingUtilizationOfUnsecuredLines": parseFloat(document.getElementById("util").value),
+      "age":                                  parseInt(document.getElementById("age").value),
+      "NumberOfTime30-59DaysPastDueNotWorse": parseInt(document.getElementById("late3059").value),
+      "DebtRatio":                            parseFloat(document.getElementById("debt").value),
+      "MonthlyIncome":                        parseFloat(document.getElementById("income").value),
+      "NumberOfOpenCreditLinesAndLoans":      parseInt(document.getElementById("creditlines").value),
+      "NumberOfTimes90DaysLate":              parseInt(document.getElementById("late90").value),
+      "NumberRealEstateLoansOrLines":         parseInt(document.getElementById("realestate").value),
+      "NumberOfTime60-89DaysPastDueNotWorse": parseInt(document.getElementById("late6089").value),
+      "NumberOfDependents":                   parseFloat(document.getElementById("dependents").value),
+    };
+
+    try {
+      const res  = await fetch(API_URL, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "API error");
+      }
+
+      const data = await res.json();
+      const pct  = (data.probability * 100).toFixed(1);
+      const isHigh = data.prediction === 1;
+
+      resEl.className = `result ${isHigh ? "high" : "low"}`;
+      document.getElementById("result-label").textContent = data.risk_label;
+      document.getElementById("result-prob").textContent  =
+        `Default probability: ${pct}%`;
+      document.getElementById("prob-bar").style.width = `${pct}%`;
+      resEl.style.display = "block";
+
+    } catch (e) {
+      errEl.textContent    = `Error: ${e.message}`;
+      errEl.style.display  = "block";
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = "Predict Default Risk";
+    }
+  }
+</script>
+</body>
+</html>
